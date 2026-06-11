@@ -1,32 +1,23 @@
-import os
-
-import faiss
-import numpy as np
-from dotenv import load_dotenv
-from openai import OpenAI
-
-load_dotenv()
-
-EMBEDDING_MODEL = "text-embedding-3-small"
-
-
-def get_embeddings(texts: list[str]) -> list[list[float]]:
-    """Get OpenAI embeddings for a list of text strings."""
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = client.embeddings.create(model=EMBEDDING_MODEL, input=texts)
-    return [item.embedding for item in response.data]
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 def create_vector_store(chunks: list[str]) -> dict:
     """
-    Embed chunks and store them in a local FAISS index.
-    Returns a dict with the FAISS index and the original chunks.
+    Build a local TF-IDF index over text chunks.
+    Returns vectorizer, sparse matrix, and original chunks.
     """
-    embeddings = get_embeddings(chunks)
-    dimension = len(embeddings[0])
+    if not chunks:
+        raise ValueError("Cannot create vector store from an empty chunks list.")
 
-    index = faiss.IndexFlatL2(dimension)
-    vectors = np.array(embeddings, dtype=np.float32)
-    index.add(vectors)
+    print(f"[DEBUG] TF-IDF indexing started for {len(chunks)} chunks", flush=True)
 
-    return {"index": index, "chunks": chunks}
+    vectorizer = TfidfVectorizer()
+    matrix = vectorizer.fit_transform(chunks)
+
+    print(
+        f"[DEBUG] TF-IDF indexing completed: {matrix.shape[0]} chunks, "
+        f"{matrix.shape[1]} features",
+        flush=True,
+    )
+
+    return {"vectorizer": vectorizer, "matrix": matrix, "chunks": chunks}
