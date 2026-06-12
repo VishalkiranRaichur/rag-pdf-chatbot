@@ -148,10 +148,6 @@ The source chunks used for answering are displayed alongside the response.
 
 *Add screenshot here*
 
-### Ask Questions
-
-*Add screenshot here*
-
 ### Example Output
 
 Question:
@@ -234,7 +230,7 @@ streamlit run app.py
 
 **Vishalkiran Raichur**
 
-Data Science Student
+Data Science Student at 
 San José State University
 
 Interested in:
