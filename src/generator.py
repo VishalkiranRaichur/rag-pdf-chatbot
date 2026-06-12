@@ -1,7 +1,6 @@
 import os
 
 from dotenv import load_dotenv
-from openai import OpenAI
 
 load_dotenv()
 
@@ -10,18 +9,20 @@ API_TIMEOUT_SECONDS = 20
 
 
 def fallback_answer(query: str, relevant_chunks: list[str]) -> str:
-    """Return a simple answer using retrieved chunks when OpenAI is unavailable."""
+    """Return an instant answer using the top retrieved chunks."""
     if not relevant_chunks:
         return "No relevant information found in the document."
 
     context = "\n\n---\n\n".join(relevant_chunks)
     return (
-        f"(OpenAI unavailable — showing retrieved excerpts for: \"{query}\")\n\n"
+        f"Top excerpts from the document for: \"{query}\"\n\n"
         f"{context}"
     )
 
 
-def _get_client() -> OpenAI:
+def _get_client():
+    from openai import OpenAI
+
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY is not set.")
@@ -30,11 +31,15 @@ def _get_client() -> OpenAI:
 
 def generate_answer(query: str, relevant_chunks: list[str]) -> str:
     """Generate an answer using retrieved chunks as context."""
+    print("[DEBUG] Entered generate_answer", flush=True)
+
     context = "\n\n".join(relevant_chunks)
+
+    print("[DEBUG] Creating OpenAI client", flush=True)
     client = _get_client()
+    print("[DEBUG] OpenAI client created", flush=True)
 
-    print("[DEBUG] calling client.chat.completions.create...", flush=True)
-
+    print("[DEBUG] Calling OpenAI", flush=True)
     try:
         response = client.chat.completions.create(
             model=CHAT_MODEL,
@@ -56,5 +61,5 @@ def generate_answer(query: str, relevant_chunks: list[str]) -> str:
     except Exception as e:
         raise RuntimeError(f"OpenAI chat completion failed: {e}") from e
 
-    print("[DEBUG] client.chat.completions.create completed", flush=True)
+    print("[DEBUG] OpenAI response received", flush=True)
     return response.choices[0].message.content

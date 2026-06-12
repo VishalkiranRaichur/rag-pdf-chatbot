@@ -138,42 +138,36 @@ if uploaded_file:
         query = st.text_input("Ask a question about the PDF")
 
         if query:
-            debug(f"Question received: {query[:80]}")
-            with st.spinner("Finding answer..."):
-                relevant_chunks = []
-                answer = ""
+            try:
+                debug("Retrieval started")
+                from src.retriever import retrieve_relevant_chunks
+
+                relevant_chunks = retrieve_relevant_chunks(
+                    query, st.session_state.vector_store
+                )
+                debug("Retrieval completed")
+
+                debug("Generation started")
+                from src.generator import fallback_answer, generate_answer
 
                 try:
-                    debug("Retrieval started")
-                    from src.retriever import retrieve_relevant_chunks
-
-                    relevant_chunks = retrieve_relevant_chunks(
-                        query, st.session_state.vector_store
-                    )
-                    debug(f"Retrieval completed: {len(relevant_chunks)} chunks")
-
-                    debug("Generation started")
-                    from src.generator import fallback_answer, generate_answer
-
-                    try:
-                        answer = generate_answer(query, relevant_chunks)
-                        debug("Generation completed")
-                    except Exception as e:
-                        st.error(str(e))
-                        debug(f"Generation failed: {e}")
-                        answer = fallback_answer(query, relevant_chunks)
-                        debug("Using fallback answer from retrieved chunks")
-
-                    st.subheader("Answer")
-                    st.write(answer)
-
-                    with st.expander("Source chunks used"):
-                        for i, chunk in enumerate(relevant_chunks, start=1):
-                            st.markdown(f"**Chunk {i}**")
-                            st.write(chunk)
-
+                    answer = generate_answer(query, relevant_chunks)
+                    debug("Generation completed")
                 except Exception as e:
-                    st.error(f"Failed to retrieve relevant chunks: {e}")
-                    debug(traceback.format_exc())
+                    st.error(str(e))
+                    debug(f"Generation failed: {e}")
+                    answer = fallback_answer(query, relevant_chunks)
+
+                st.subheader("Answer")
+                st.write(answer)
+
+                with st.expander("Source chunks used"):
+                    for i, chunk in enumerate(relevant_chunks, start=1):
+                        st.markdown(f"**Chunk {i}**")
+                        st.write(chunk)
+
+            except Exception as e:
+                st.error(f"Failed to answer question: {e}")
+                debug(traceback.format_exc())
 
 show_debug_panel()
